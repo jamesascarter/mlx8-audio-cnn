@@ -52,13 +52,13 @@ def preprocess(example):
     # Normalize to [0, 1]
     mel_norm = (mel_db + 80) / 80
 
-    if mel_norm.shape[1] < target_time_frames:
+    if mel_norm.shape[1] < TARGET_TIME_FRAME:
         # Pad with zeros if too short
-        pad_width = target_time_frames - mel_norm.shape[1]
+        pad_width = TARGET_TIME_FRAME - mel_norm.shape[1]
         mel_norm = np.pad(mel_norm, ((0, 0), (0, pad_width)), mode='constant')
     else:
         # Truncate if too long
-        mel_norm = mel_norm[:, :target_time_frames]
+        mel_norm = mel_norm[:, :TARGET_TIME_FRAME]
 
     # Convert to torch tensor
     mel_tensor = torch.tensor(mel_norm).unsqueeze(0).float()
