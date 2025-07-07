@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader, TensorDataset
 import pickle
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from model import AudioCNN
 import os
 

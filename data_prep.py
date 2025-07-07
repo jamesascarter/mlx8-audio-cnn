@@ -16,6 +16,7 @@ N_FFT = 512
 HOP_LENGTH = 256
 DATASET_NAME = "danavery/urbansound8K"
 SPLIT="train"
+TARGET_TIME_FRAME = 128
 
 ds = datasets.load_dataset(DATASET_NAME, split=SPLIT, streaming=True)
 ds = ds.cast_column("audio", Audio(sampling_rate=SAMPLE_RATE))
@@ -50,6 +51,14 @@ def preprocess(example):
 
     # Normalize to [0, 1]
     mel_norm = (mel_db + 80) / 80
+
+    if mel_norm.shape[1] < target_time_frames:
+        # Pad with zeros if too short
+        pad_width = target_time_frames - mel_norm.shape[1]
+        mel_norm = np.pad(mel_norm, ((0, 0), (0, pad_width)), mode='constant')
+    else:
+        # Truncate if too long
+        mel_norm = mel_norm[:, :target_time_frames]
 
     # Convert to torch tensor
     mel_tensor = torch.tensor(mel_norm).unsqueeze(0).float()
