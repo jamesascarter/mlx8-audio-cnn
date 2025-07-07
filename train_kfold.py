@@ -151,13 +151,13 @@ def train_fold(features, labels, folds, fold_num):
         # Save best model for this fold
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), f'best_model_fold{fold_num}.pth')
+            torch.save(model.state_dict(), f'models/best_model_fold{fold_num}.pth')
         
         if (epoch + 1) % 10 == 0:
             print(f"Epoch {epoch+1}: Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%")
     
     # Load best model and evaluate on test set
-    model.load_state_dict(torch.load(f'best_model_fold{fold_num}.pth'))
+    model.load_state_dict(torch.load(f'models/best_model_fold{fold_num}.pth'))
     test_loss, test_acc = evaluate(model, test_loader, criterion, DEVICE, "Testing")
     
     print(f"Fold {fold_num} Results:")
