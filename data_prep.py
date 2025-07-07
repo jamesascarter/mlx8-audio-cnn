@@ -8,8 +8,6 @@ import numpy as np
 import soundfile as sf
 from tqdm import tqdm
 import sys
-import matplotlib.pyplot as plt
-import librosa.display
 
 NUM_SAMPLES = 8732
 SAMPLE_RATE = 16000
