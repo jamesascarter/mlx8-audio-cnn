@@ -61,8 +61,6 @@ ds_subset = ds.take(NUM_SAMPLES)
 # Use dataset.map() for efficient processing
 processed_ds = ds_subset.map(
     preprocess,
-    num_proc=1,  # Set to higher number if you have multiple cores
-    batch_size=1
 )
 
 # Convert to list for saving
