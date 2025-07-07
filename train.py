@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from model import AudioCNN
 import os
+import matplotlib.pyplot as plt
 
 # Training configuration
 BATCH_SIZE = 32
