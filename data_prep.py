@@ -8,6 +8,8 @@ import numpy as np
 import soundfile as sf
 from tqdm import tqdm
 import sys
+import matplotlib.pyplot as plt
+import librosa.display
 
 NUM_SAMPLES = 8732
 SAMPLE_RATE = 16000
@@ -52,21 +54,30 @@ def preprocess(example):
     # Normalize to [0, 1]
     mel_norm = (mel_db + 80) / 80
 
+    # DEBUG: Print original shape
+    print(f"Original mel shape: {mel_norm.shape}")
+
+    # STANDARDIZE TIME DIMENSION - This is the key fix!
     if mel_norm.shape[1] < TARGET_TIME_FRAME:
         # Pad with zeros if too short
         pad_width = TARGET_TIME_FRAME - mel_norm.shape[1]
         mel_norm = np.pad(mel_norm, ((0, 0), (0, pad_width)), mode='constant')
+        print(f"Padded to shape: {mel_norm.shape}")
     else:
         # Truncate if too long
         mel_norm = mel_norm[:, :TARGET_TIME_FRAME]
+        print(f"Truncated to shape: {mel_norm.shape}")
 
     # Convert to torch tensor
     mel_tensor = torch.tensor(mel_norm).unsqueeze(0).float()
+    
+    # DEBUG: Print final tensor shape
+    print(f"Final tensor shape: {mel_tensor.shape}")
 
     return {
-        "input_tensor": mel_tensor,
+        "input_tensor": mel_tensor,  # Now always shape: (1, 64, 128)
         "label": example["classID"],
-        "fold": example["fold"]  # Keep the fold information
+        "fold": example["fold"]
     }
 
 print(f"Processing {NUM_SAMPLES} samples...")
@@ -82,12 +93,22 @@ processed_ds = ds_subset.map(
 # Convert to list
 all_data = list(processed_ds)
 
-# Simple train/val/test split (for non-kfold training)
-print("Creating simple train/val/test split...")
+# DEBUG: Check first few tensor shapes
+print(f"\nChecking tensor shapes:")
+for i in range(min(5, len(all_data))):
+    print(f"Sample {i}: {all_data[i]['input_tensor'].shape}")
+
+# Now all tensors should have the same size
+print(f"\nSample tensor shapes:")
+for i in range(min(5, len(all_data))):
+    print(f"Sample {i}: {all_data[i]['input_tensor'].shape}")
+
+# Calculate split indices
 total_samples = len(all_data)
 train_end = int(total_samples * 0.75)
 val_end = train_end + int(total_samples * 0.20)
 
+# Split the data
 train_data = all_data[:train_end]
 val_data = all_data[train_end:val_end]
 test_data = all_data[val_end:]
