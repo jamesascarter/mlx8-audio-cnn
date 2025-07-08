@@ -15,6 +15,7 @@ LEARNING_RATE = 0.001
 NUM_EPOCHS = 50
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 K_FOLDS = 10
+WEIGHT_DECAY = 1e-4 
 
 def load_all_data():
     """Load all data with fold information"""
@@ -153,8 +154,8 @@ def train_fold(features, labels, folds, fold_num):
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, verbose=True)
     best_val_acc = 0.0
     
     for epoch in range(NUM_EPOCHS):
@@ -163,7 +164,7 @@ def train_fold(features, labels, folds, fold_num):
         
         # Validate
         val_loss, val_acc = evaluate(model, val_loader, criterion, DEVICE, "Validation", fold_num, epoch)
-        
+        scheduler.step(val_acc)
         # Save best model for this fold
         if val_acc > best_val_acc:
             best_val_acc = val_acc
