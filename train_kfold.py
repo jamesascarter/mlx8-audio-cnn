@@ -6,12 +6,13 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 from model import AudioCNN
+from audio_classifier import AudioClassifier
 import os
 import wandb
 
 # Training configuration
 BATCH_SIZE = 32
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0005
 NUM_EPOCHS = 50
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 K_FOLDS = 10
@@ -150,12 +151,12 @@ def train_fold(features, labels, folds, fold_num):
     test_loader = create_data_loader(test_features, test_labels, BATCH_SIZE, shuffle=False)
     
     # Initialize model
-    model = AudioCNN(num_classes=10).to(DEVICE)
+    model = AudioClassifier(num_classes=10).to(DEVICE)
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.3, patience=3)
     best_val_acc = 0.0
     
     for epoch in range(NUM_EPOCHS):
