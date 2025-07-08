@@ -8,5 +8,6 @@ dependencies = [
     "librosa",
     "soundfile",
     "tqdm",
-    "matplotlib"
+    "matplotlib",
+    "wandb"
 ]

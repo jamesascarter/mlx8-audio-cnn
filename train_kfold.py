@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from model import AudioCNN
 import os
+import wandb
 
 # Training configuration
 BATCH_SIZE = 32
@@ -60,7 +61,7 @@ def create_data_loader(features, labels, batch_size, shuffle=True):
     dataset = TensorDataset(features, labels)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
-def train_epoch(model, train_loader, criterion, optimizer, device):
+def train_epoch(model, train_loader, criterion, optimizer, device, fold_num, epoch):
     """Train for one epoch"""
     model.train()
     running_loss = 0.0
@@ -85,9 +86,16 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
     epoch_loss = running_loss / len(train_loader)
     epoch_acc = 100 * correct / total
     
+    # Log training metrics
+    wandb.log({
+        f"fold_{fold_num}/train_loss": epoch_loss,
+        f"fold_{fold_num}/train_acc": epoch_acc,
+        f"fold_{fold_num}/epoch": epoch
+    })
+    
     return epoch_loss, epoch_acc
 
-def evaluate(model, data_loader, criterion, device, split_name="Validation"):
+def evaluate(model, data_loader, criterion, device, split_name="Validation", fold_num=None, epoch=None):
     """Evaluate the model"""
     model.eval()
     running_loss = 0.0
@@ -109,6 +117,14 @@ def evaluate(model, data_loader, criterion, device, split_name="Validation"):
     
     avg_loss = running_loss / len(data_loader)
     accuracy = 100 * correct / total
+    
+    # Log evaluation metrics if fold_num is provided
+    if fold_num is not None and epoch is not None:
+        wandb.log({
+            f"fold_{fold_num}/{split_name.lower()}_loss": avg_loss,
+            f"fold_{fold_num}/{split_name.lower()}_acc": accuracy,
+            f"fold_{fold_num}/epoch": epoch
+        })
     
     return avg_loss, accuracy
 
@@ -143,22 +159,30 @@ def train_fold(features, labels, folds, fold_num):
     
     for epoch in range(NUM_EPOCHS):
         # Train
-        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, DEVICE)
+        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, DEVICE, fold_num, epoch)
         
         # Validate
-        val_loss, val_acc = evaluate(model, val_loader, criterion, DEVICE, "Validating")
+        val_loss, val_acc = evaluate(model, val_loader, criterion, DEVICE, "Validation", fold_num, epoch)
         
         # Save best model for this fold
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), f'models/best_model_fold{fold_num}.pth')
+            # Log best validation accuracy
+            wandb.log({f"fold_{fold_num}/best_val_acc": best_val_acc})
         
         if (epoch + 1) % 10 == 0:
             print(f"Epoch {epoch+1}: Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%")
     
     # Load best model and evaluate on test set
     model.load_state_dict(torch.load(f'models/best_model_fold{fold_num}.pth'))
-    test_loss, test_acc = evaluate(model, test_loader, criterion, DEVICE, "Testing")
+    test_loss, test_acc = evaluate(model, test_loader, criterion, DEVICE, "Test", fold_num, None)
+    
+    # Log final test results for this fold
+    wandb.log({
+        f"fold_{fold_num}/final_test_acc": test_acc,
+        f"fold_{fold_num}/final_test_loss": test_loss
+    })
     
     print(f"Fold {fold_num} Results:")
     print(f"Best Validation Accuracy: {best_val_acc:.2f}%")
@@ -171,6 +195,19 @@ def train_fold(features, labels, folds, fold_num):
     }
 
 def main():
+    # Initialize wandb
+    wandb.init(
+        project="mlx8-audio-cnn",
+        config={
+            "batch_size": BATCH_SIZE,
+            "learning_rate": LEARNING_RATE,
+            "num_epochs": NUM_EPOCHS,
+            "k_folds": K_FOLDS,
+            "device": str(DEVICE),
+            "model": "AudioCNN"
+        }
+    )
+    
     print(f"Using device: {DEVICE}")
     print(f"Starting {K_FOLDS}-fold cross-validation...")
     
@@ -189,6 +226,13 @@ def main():
     avg_test_acc = np.mean([r["test_acc"] for r in fold_results])
     std_test_acc = np.std([r["test_acc"] for r in fold_results])
     
+    # Log final results
+    wandb.log({
+        "final/avg_val_acc": avg_val_acc,
+        "final/avg_test_acc": avg_test_acc,
+        "final/std_test_acc": std_test_acc
+    })
+    
     print(f"\n{'='*50}")
     print("K-FOLD CROSS-VALIDATION RESULTS")
     print(f"{'='*50}")
@@ -204,7 +248,9 @@ def main():
     with open('kfold_results.pkl', 'wb') as f:
         pickle.dump(fold_results, f)
     
-    print(f"\nResults saved to kfold_results.pkl")
+    # Finish wandb run
+    wandb.finish()
+    
     print("Training completed!")
 
 if __name__ == "__main__":
