@@ -14,7 +14,7 @@ class AudioCNN(nn.Module):
         self.fc1 = nn.Linear(64 * 16 * 32, 128)
         self.fc2 = nn.Linear(128, num_classes)
         self.bn1 = nn.BatchNorm2d(32) 
-        self.bn2 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(64)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
