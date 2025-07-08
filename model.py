@@ -2,13 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+DROPOUT_RATE = 0.2
+
 class AudioCNN(nn.Module):
     def __init__(self, num_classes=10):
         super(AudioCNN, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.dropout1 = nn.Dropout2d(dropout_rate)  # Spatial dropout
-        self.dropout2 = nn.Dropout(dropout_rate)
+        self.dropout1 = nn.Dropout2d(DROPOUT_RATE)  # Spatial dropout
+        self.dropout2 = nn.Dropout(DROPOUT_RATE)
         self.fc1 = nn.Linear(64 * 16 * 32, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
